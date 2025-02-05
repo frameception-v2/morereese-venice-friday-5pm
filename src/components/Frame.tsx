@@ -13,26 +13,75 @@ import {
   CardDescription,
   CardContent,
 } from "~/components/ui/card";
-
 import { config } from "~/components/providers/WagmiProvider";
 import { truncateAddress } from "~/lib/truncateAddress";
 import { base, optimism } from "wagmi/chains";
 import { useSession } from "next-auth/react";
 import { createStore } from "mipd";
 import { Label } from "~/components/ui/label";
-import { PROJECT_TITLE } from "~/lib/constants";
+import { PROJECT_TITLE, TARGET_DATE } from "~/lib/constants";
 
-function ExampleCard() {
+function CountdownCard() {
+  const [timeLeft, setTimeLeft] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const target = new Date(TARGET_DATE);
+      const difference = target.getTime() - now.getTime();
+
+      if (difference <= 0) return null;
+
+      return {
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / 1000 / 60) % 60),
+        seconds: Math.floor((difference / 1000) % 60),
+      };
+    };
+
+    const updateTimer = () => setTimeLeft(calculateTimeLeft());
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome to the Frame Template</CardTitle>
-        <CardDescription>
-          This is an example card that you can customize or remove
+        <CardTitle className="text-center">⏳ Venice Friday 5pm UTC</CardTitle>
+        <CardDescription className="text-center">
+          Time remaining until event
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Label>Place content in a Card here.</Label>
+        {timeLeft ? (
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <div className="text-2xl font-bold">{timeLeft.days}</div>
+              <div className="text-xs">Days</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{timeLeft.hours}</div>
+              <div className="text-xs">Hours</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{timeLeft.minutes}</div>
+              <div className="text-xs">Minutes</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{timeLeft.seconds}</div>
+              <div className="text-xs">Seconds</div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-xl font-bold">🎉 Event Started!</div>
+        )}
       </CardContent>
     </Card>
   );
@@ -43,7 +92,6 @@ export default function Frame() {
   const [context, setContext] = useState<Context.FrameContext>();
 
   const [added, setAdded] = useState(false);
-
   const [addFrameResult, setAddFrameResult] = useState("");
 
   const addFrame = useCallback(async () => {
@@ -72,7 +120,6 @@ export default function Frame() {
       setContext(context);
       setAdded(context.client.added);
 
-      // If frame isn't already added, prompt user to add it
       if (!context.client.added) {
         addFrame();
       }
@@ -104,13 +151,9 @@ export default function Frame() {
       console.log("Calling ready");
       sdk.actions.ready({});
 
-      // Set up a MIPD Store, and request Providers.
       const store = createStore();
-
-      // Subscribe to the MIPD Store.
       store.subscribe((providerDetails) => {
         console.log("PROVIDER DETAILS", providerDetails);
-        // => [EIP6963ProviderDetail, EIP6963ProviderDetail, ...]
       });
     };
     if (sdk && !isSDKLoaded) {
@@ -140,7 +183,7 @@ export default function Frame() {
         <h1 className="text-2xl font-bold text-center mb-4 text-neutral-900">
           {PROJECT_TITLE}
         </h1>
-        <ExampleCard />
+        <CountdownCard />
       </div>
     </div>
   );
